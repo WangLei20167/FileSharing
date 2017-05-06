@@ -32,6 +32,7 @@ import java.util.List;
 
 import Utils.FileOperate;
 import Utils.FileUtils;
+import Utils.IntAndBytes;
 import wifi.APHelper;
 import wifi.Constant;
 import wifi.TCPClient;
@@ -224,31 +225,98 @@ public class MainActivity extends AppCompatActivity {
      */
     public byte[][] randomNC_file(Uri uri,int N, int K) {
         String path = FileUtils.getPath(this, uri);
-        String fileName=FileUtils.getFileNameWithSuffix(path);
-        //把文件名与数据封装在一起
-        byte[] fileNameBytes=fileName.getBytes();
 
         File f = new File(path);
         //Java中int的取值范围是2的32次方，最大值是2的31次方，最小值是负值的2的31次方-1
         //2^32次方字节等于4GB,理论可处理的最长文件值
         int fileLen = (int) f.length();
-        int nLen = fileLen / K + (fileLen % K != 0 ? 1 : 0);
-        byte b[] = new byte[K * nLen];     //创建合适文件大小的数组
-        //Arrays.fill(b, (byte) 0);
+        byte fileContent[] = new byte[fileLen];     //创建合适文件大小的数组
         try {
             InputStream in = new FileInputStream(f);
             //b = new byte[fileLen];
-            in.read(b);    //读取文件中的内容到b[]数组
+            in.read(fileContent);    //读取文件中的内容到b[]数组
             in.close();
         } catch (IOException e) {
             Toast.makeText(this, "读取文件异常", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
             return null;
         }
-        byte[] encodeData = randomNC(b, K, nLen, N, K);
-        byte[] originData = NCDecoding(encodeData, 1 + K + nLen);
+
+        //把文件名与数据封装在一起
+        String fileName=FileUtils.getFileNameWithSuffix(path);
+        byte[] fileNameBytes=fileName.getBytes();
+        int nameLen=fileNameBytes.length;
+        int totalLen=1+nameLen+fileLen;     //其中0下标用来存文件名的长度
+        int colLen = totalLen / K + (totalLen % K != 0 ? 1 : 0);
+        byte[] fileNameAndContent=new byte[K*colLen];
+        //存入文件名长度
+        fileNameAndContent[0]=(byte)nameLen;
+        //存入文件名
+        for(int i=1;i<=nameLen;++i){
+            fileNameAndContent[i]=fileNameBytes[i-1];
+        }
+        //存入文件内容
+        for(int i=nameLen+1;i<=nameLen+fileLen;++i){
+            fileNameAndContent[i]=fileContent[i-nameLen-1];
+        }
+        for(int i=nameLen+fileLen+1;i<totalLen;++i){
+            fileNameAndContent[i]=(byte)0;
+        }
+
+        byte[] encodeData = randomNC(fileNameAndContent, K, colLen, N, K);
+        int NCol=4+1+K+colLen;   //其中0-3下标存每行数据长度,4存K值,1+K+colLen为jni返回时数据的列数
+        byte[][] dataForSend=new byte[N][NCol];
+        byte[] NColBytes= IntAndBytes.int2byte(NCol);
+        for(int i=0;i<N;++i){
+            for(int j=0;j<4;++j){
+                dataForSend[i][j]=NColBytes[j];
+            }
+        }
+        for(int i=0;i<N;i++){
+            for(int j=4;j<NCol;j++){
+                dataForSend[i][j]=encodeData[i*(1+K+colLen)+j-4];
+            }
+        }
+
+
+        String originData = decodingData(dataForSend,K);
 
         return null;
+    }
+
+
+    public String decodingData(byte[][] encodeData,int K){
+        //拆分数据
+        byte[] colBytes=new byte[4];
+        for(int i=0;i<4;i++){
+            colBytes[i]=encodeData[0][i];
+        }
+        int col=IntAndBytes.byte2int(colBytes);
+        //把需要解码的数据取出
+        int iData=0;
+        byte[] data=new byte[K*(col-4)];
+        for(int i=0;i<K;i++){
+            for(int j=4;j<col;j++){
+                data[iData]=encodeData[i][j];
+                ++iData;
+            }
+        }
+        byte[] originData=NCDecoding(data,col-4);
+        //读出文件名
+        int nameLen=originData[0];
+        byte[] nameBytes=new byte[nameLen];
+        for(int i=0;i<nameLen;++i){
+            nameBytes[i]=originData[i+1];
+        }
+        String fileName=new String(nameBytes);
+        //此处当fileLen大于Integer.MAX_VALUE(4G)时，会怎么样
+        int fileLen=originData.length-(1+nameLen);
+        byte[] inputData=new byte[fileLen];
+        for(int i=0;i<fileLen;++i){
+            inputData[i]=originData[i+nameLen+1];
+        }
+        mFileOperate.writeToFile(fileName,inputData);
+        return fileName;
     }
     //当手机当做热点时，自身IP地址为192.168.43.1
     public String GetIpAddress() {

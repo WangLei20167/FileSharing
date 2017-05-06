@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -50,10 +52,12 @@ public class FileOperate {
      * @param fileName 创建的文件名（带扩展名）
      * @param inputData 向文件中写入的内容
      */
-    public void writeToFile(String fileName,String inputData){
+    public void writeToFile(String fileName,byte[] inputData){
         //把IP服务器的IP写入文件
         String toFile = myFolderPath + fileName;
         File myFile = new File(toFile);
+        FileOutputStream fos=null;
+        BufferedOutputStream bos=null;
         if (!myFile.exists()) {   //不存在则创建
             try {
                 myFile.createNewFile();
@@ -65,15 +69,30 @@ public class FileOperate {
 
         try {
             //传递一个true参数，代表不覆盖已有的文件。并在已有文件的末尾处进行数据续写,false表示覆盖写
-            FileWriter fw = new FileWriter(myFile, false);
-            BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(inputData);
+            //FileWriter fw = new FileWriter(myFile, false);
+            //BufferedWriter bw = new BufferedWriter(fw);
+            fos = new FileOutputStream(myFile);
+            bos = new BufferedOutputStream(fos);
+            bos.write(inputData);
             //bw.write("测试文本");
-            bw.flush();
-            bw.close();
-            fw.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            if (bos != null) {
+                try {
+                    bos.flush();
+                    bos.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
         }
     }
     public void openAssignFolder(){
