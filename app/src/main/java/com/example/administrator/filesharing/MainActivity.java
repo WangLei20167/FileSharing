@@ -13,24 +13,20 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-import Utils.FileOperate;
+import Utils.AppFolder;
 import Utils.FileUtils;
 import Utils.IntAndBytes;
 import wifi.APHelper;
@@ -62,15 +58,20 @@ public class MainActivity extends AppCompatActivity {
     private List<String> permissionsList = new ArrayList<String>();
     //申请权限后的返回码
     private static final int REQUEST_CODE_ASK_PERMISSIONS = 1;
-    /**点两次返回按键退出程序的时间*/
+    /**
+     * 点两次返回按键退出程序的时间
+     */
     private long mExitTime;
     public Button bt_shareFile;
     public Button bt_receiveFile;
-    public APHelper mAPHelper =null;
-    public TCPServer mTCPServer=null;
-    public boolean OpenSocketServerPort=false;   //作为端口是否开启的标志
-    public TCPClient mTcpClient=null;
-    public FileOperate mFileOperate=null;        //用以文件操作
+    public APHelper mAPHelper = null;
+    public TCPServer mTCPServer = null;
+    public boolean OpenSocketServerPort = false;   //作为端口是否开启的标志
+    public TCPClient mTcpClient = null;
+    public AppFolder mAppFolder = null;        //用以文件操作
+    public String myFolderPath = "";      //app目录
+    public String myTempPath = "";        //暂存目录
+    public String myFileRevPath = "";     //已接收文件目录
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,23 +87,29 @@ public class MainActivity extends AppCompatActivity {
             mAPHelper.setWifiApEnabled(null, false);
         }
         //用以处理SocketServer
-        mTCPServer=new TCPServer(MainActivity.this);
+        mTCPServer = new TCPServer(MainActivity.this);
         //用以连接Server Socket
-        mTcpClient=new TCPClient(MainActivity.this);
+        mTcpClient = new TCPClient(MainActivity.this);
         //文件操作
-        mFileOperate=new FileOperate(MainActivity.this);
-        if(!mFileOperate.createPath("hanhaiKuaiChuan")){
+        mAppFolder = new AppFolder();
+        if (mAppFolder.createPath("hanhaiKuaiChuan")) {
+            //记录下三个文件夹的路径
+            myFolderPath = mAppFolder.FolderPath;
+            myTempPath = mAppFolder.TempPath;
+            myFileRevPath = mAppFolder.FileRevPath;
+        } else {
             Toast.makeText(this, "文件夹创建失败", Toast.LENGTH_SHORT).show();
         }
+        FileUtils.creatTimeFolder(myTempPath);
 
         bt_shareFile = (Button) findViewById(R.id.button_shareFile);
         bt_shareFile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //打开监听端口
-                if(!OpenSocketServerPort){
+                if (!OpenSocketServerPort) {
                     mTCPServer.StartServer();
-                    OpenSocketServerPort=true;
+                    OpenSocketServerPort = true;
                 }
                 new Thread(new Runnable() {
                     @Override
@@ -120,9 +127,9 @@ public class MainActivity extends AppCompatActivity {
                                 Message APOpenFailed = new Message();
                                 APOpenFailed.what = APOPENFAILED;
                                 handler.sendMessage(APOpenFailed);
-                               // Toast.makeText(MainActivity.this, "打开热点失败", Toast.LENGTH_SHORT).show();
+                                // Toast.makeText(MainActivity.this, "打开热点失败", Toast.LENGTH_SHORT).show();
                             }
-                        }else{
+                        } else {
                             //
                         }
                     }
@@ -135,11 +142,11 @@ public class MainActivity extends AppCompatActivity {
                 showFileChooser();
             }
         });
-        bt_receiveFile=(Button)findViewById(R.id.button_receiveFile);
+        bt_receiveFile = (Button) findViewById(R.id.button_receiveFile);
         bt_receiveFile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               // 如果热点已经打开，需要先关闭热点
+                // 如果热点已经打开，需要先关闭热点
                 if (mAPHelper.isApEnabled()) {
                     mAPHelper.setWifiApEnabled(null, false);
                     //当手机当做热点时，自身IP地址为192.168.43.1
@@ -159,12 +166,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //连接热点
-    public void connectWifi(){
+    public void connectWifi() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 //连接指定wifi
-                WifiAdmin mWifiAdmin=new WifiAdmin(MainActivity.this);
+                WifiAdmin mWifiAdmin = new WifiAdmin(MainActivity.this);
                 mWifiAdmin.openWifi();
                 mWifiAdmin.connectAppointedNet();
             }
@@ -172,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //连接创建热点的节点
-    public void connectServerSocket(){
+    public void connectServerSocket() {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -185,9 +192,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     //用于打开文件选择器，选择文件并返回文件地址
     public static final int FILE_SELECT_CODE = 1;
+
     private void showFileChooser() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
@@ -207,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
                     // Get the Uri of the selected file
                     Uri uri = data.getData();
                     String path = FileUtils.getPath(this, uri);
-                    String fileName=FileUtils.getFileNameWithSuffix(path);
+                    String fileName = FileUtils.getFileNameWithSuffix(path);
                     //String fileName=uri.getLastPathSegment();
                     randomNC_file(uri, 4, 4);
                 }
@@ -217,13 +224,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     *
      * @param uri 待发送的文件地址
-     * @param N 生成的编码文件份数
-     * @param K 文件切割的份数
+     * @param N   生成的编码文件份数
+     * @param K   文件切割的份数
      * @return
      */
-    public byte[][] randomNC_file(Uri uri,int N, int K) {
+    public byte[][] randomNC_file(Uri uri, int N, int K) {
         String path = FileUtils.getPath(this, uri);
 
         File f = new File(path);
@@ -243,81 +249,82 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //把文件名与数据封装在一起
-        String fileName=FileUtils.getFileNameWithSuffix(path);
-        byte[] fileNameBytes=fileName.getBytes();
-        int nameLen=fileNameBytes.length;
-        int totalLen=1+nameLen+fileLen;     //其中0下标用来存文件名的长度
+        String fileName = FileUtils.getFileNameWithSuffix(path);
+        byte[] fileNameBytes = fileName.getBytes();
+        int nameLen = fileNameBytes.length;
+        int totalLen = 1 + nameLen + fileLen;     //其中0下标用来存文件名的长度
         int colLen = totalLen / K + (totalLen % K != 0 ? 1 : 0);
-        byte[] fileNameAndContent=new byte[K*colLen];
+        byte[] fileNameAndContent = new byte[K * colLen];
         //存入文件名长度
-        fileNameAndContent[0]=(byte)nameLen;
+        fileNameAndContent[0] = (byte) nameLen;
         //存入文件名
-        for(int i=1;i<=nameLen;++i){
-            fileNameAndContent[i]=fileNameBytes[i-1];
+        for (int i = 1; i <= nameLen; ++i) {
+            fileNameAndContent[i] = fileNameBytes[i - 1];
         }
         //存入文件内容
-        for(int i=nameLen+1;i<=nameLen+fileLen;++i){
-            fileNameAndContent[i]=fileContent[i-nameLen-1];
+        for (int i = nameLen + 1; i <= nameLen + fileLen; ++i) {
+            fileNameAndContent[i] = fileContent[i - nameLen - 1];
         }
-        for(int i=nameLen+fileLen+1;i<totalLen;++i){
-            fileNameAndContent[i]=(byte)0;
+        for (int i = nameLen + fileLen + 1; i < totalLen; ++i) {
+            fileNameAndContent[i] = (byte) 0;
         }
 
         byte[] encodeData = randomNC(fileNameAndContent, K, colLen, N, K);
-        int NCol=4+1+K+colLen;   //其中0-3下标存每行数据长度,4存K值,1+K+colLen为jni返回时数据的列数
-        byte[][] dataForSend=new byte[N][NCol];
-        byte[] NColBytes= IntAndBytes.int2byte(NCol);
-        for(int i=0;i<N;++i){
-            for(int j=0;j<4;++j){
-                dataForSend[i][j]=NColBytes[j];
+        int NCol = 4 + 1 + K + colLen;   //其中0-3下标存每行数据长度,4存K值,1+K+colLen为jni返回时数据的列数
+        byte[][] dataForSend = new byte[N][NCol];
+        byte[] NColBytes = IntAndBytes.int2byte(NCol);
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                dataForSend[i][j] = NColBytes[j];
             }
         }
-        for(int i=0;i<N;i++){
-            for(int j=4;j<NCol;j++){
-                dataForSend[i][j]=encodeData[i*(1+K+colLen)+j-4];
+        for (int i = 0; i < N; i++) {
+            for (int j = 4; j < NCol; j++) {
+                dataForSend[i][j] = encodeData[i * (1 + K + colLen) + j - 4];
             }
         }
 
 
-        String originData = decodingData(dataForSend,K);
+        String originData = decodingData(dataForSend, K);
 
         return null;
     }
 
 
-    public String decodingData(byte[][] encodeData,int K){
+    public String decodingData(byte[][] encodeData, int K) {
         //拆分数据
-        byte[] colBytes=new byte[4];
-        for(int i=0;i<4;i++){
-            colBytes[i]=encodeData[0][i];
+        byte[] colBytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+            colBytes[i] = encodeData[0][i];
         }
-        int col=IntAndBytes.byte2int(colBytes);
+        int col = IntAndBytes.byte2int(colBytes);
         //把需要解码的数据取出
-        int iData=0;
-        byte[] data=new byte[K*(col-4)];
-        for(int i=0;i<K;i++){
-            for(int j=4;j<col;j++){
-                data[iData]=encodeData[i][j];
+        int iData = 0;
+        byte[] data = new byte[K * (col - 4)];
+        for (int i = 0; i < K; i++) {
+            for (int j = 4; j < col; j++) {
+                data[iData] = encodeData[i][j];
                 ++iData;
             }
         }
-        byte[] originData=NCDecoding(data,col-4);
+        byte[] originData = NCDecoding(data, col - 4);
         //读出文件名
-        int nameLen=originData[0];
-        byte[] nameBytes=new byte[nameLen];
-        for(int i=0;i<nameLen;++i){
-            nameBytes[i]=originData[i+1];
+        int nameLen = originData[0];
+        byte[] nameBytes = new byte[nameLen];
+        for (int i = 0; i < nameLen; ++i) {
+            nameBytes[i] = originData[i + 1];
         }
-        String fileName=new String(nameBytes);
+        String fileName = new String(nameBytes);
         //此处当fileLen大于Integer.MAX_VALUE(4G)时，会怎么样
-        int fileLen=originData.length-(1+nameLen);
-        byte[] inputData=new byte[fileLen];
-        for(int i=0;i<fileLen;++i){
-            inputData[i]=originData[i+nameLen+1];
+        int fileLen = originData.length - (1 + nameLen);
+        byte[] inputData = new byte[fileLen];
+        for (int i = 0; i < fileLen; ++i) {
+            inputData[i] = originData[i + nameLen + 1];
         }
-        mFileOperate.writeToFile(fileName,inputData);
+        //mFileOperate.writeToFile(fileName, inputData);
         return fileName;
     }
+
     //当手机当做热点时，自身IP地址为192.168.43.1
     public String GetIpAddress() {
         WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
@@ -327,14 +334,14 @@ public class MainActivity extends AppCompatActivity {
         String b = "0.0.0.0";
         if (a.equals(b)) {
             //a = "192.168.43.1";// 当手机当作WIFI热点的时候，自身IP地址为192.168.43.1
-            a= Constant.TCP_ServerIP;
+            a = Constant.TCP_ServerIP;
         }
         return a;
     }
 
-    public static final int APOPENSUCCESS=1;
-    public static final int APOPENFAILED=2;
-    public static final int PORTCANUSE=3;
+    public static final int APOPENSUCCESS = 1;
+    public static final int APOPENFAILED = 2;
+    public static final int PORTCANUSE = 3;
     public Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -356,27 +363,28 @@ public class MainActivity extends AppCompatActivity {
     };
 
     //检查和申请权限
-    private void checkRequiredPermission(final Activity activity){
+    private void checkRequiredPermission(final Activity activity) {
         for (String permission : permissionsArray) {
             if (ContextCompat.checkSelfPermission(activity, permission) != PackageManager.PERMISSION_GRANTED) {
                 permissionsList.add(permission);
             }
         }
         //若是permissionsList为空，则说明所有权限已用
-        if(permissionsList.size()==0){
+        if (permissionsList.size() == 0) {
             return;
         }
         ActivityCompat.requestPermissions(activity, permissionsList.toArray(new String[permissionsList.size()]), REQUEST_CODE_ASK_PERMISSIONS);
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case REQUEST_CODE_ASK_PERMISSIONS:
-                for (int i=0; i<permissions.length; i++) {
+                for (int i = 0; i < permissions.length; i++) {
                     if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(MainActivity.this, "做一些申请成功的权限对应的事！"+permissions[i], Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "做一些申请成功的权限对应的事！" + permissions[i], Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(MainActivity.this, "权限被拒绝： "+permissions[i], Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "权限被拒绝： " + permissions[i], Toast.LENGTH_SHORT).show();
                     }
                 }
                 break;
@@ -387,9 +395,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-       super.onBackPressed();
+        super.onBackPressed();
 
     }
+
     /**
      * 点击两次退出程序
      */
