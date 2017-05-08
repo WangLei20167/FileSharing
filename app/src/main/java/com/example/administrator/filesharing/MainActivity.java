@@ -16,7 +16,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
@@ -45,8 +45,7 @@ import wifi.TCPServer;
 import wifi.WifiAdmin;
 
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -68,8 +67,10 @@ public class MainActivity extends AppCompatActivity
     private List<String> permissionsList = new ArrayList<String>();
     //申请权限后的返回码
     private static final int REQUEST_CODE_ASK_PERMISSIONS = 1;
+    //用来实现左侧导航栏
+    private DrawerLayout mDrawerLayout;
 
-    //点两次返回按键退出程序的时间
+     //点两次返回按键退出程序的时间
     private long mExitTime;
     public Button bt_buildConnect;
     public Button bt_joinConnect;
@@ -90,15 +91,6 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //实现左侧导航栏
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
 
 
         //检查和申请权限
@@ -124,6 +116,51 @@ public class MainActivity extends AppCompatActivity
         } else {
             Toast.makeText(this, "文件夹创建失败,app无法正常使用", Toast.LENGTH_SHORT).show();
         }
+
+        //用来实现左侧导航栏
+        Toolbar toolbar=(Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        mDrawerLayout=(DrawerLayout) findViewById(R.id.drawer_layout);
+        NavigationView navView=(NavigationView)findViewById(R.id.nav_view);
+        ActionBar actionBar=getSupportActionBar();
+        if(actionBar !=null){
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setHomeAsUpIndicator(R.drawable.ic_menu);
+        }
+        //设置默认选中项
+        navView.setCheckedItem(R.id.nav_openFolder);
+        navView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener(){
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()){
+                    case R.id.nav_openFolder:
+                        //打开应用文件夹
+                        int i=0;
+                        i=i++;
+                        FileUtils.openAssignFolder(MainActivity.this, myFolderPath);
+                        break;
+                    case R.id.nav_feedback:
+
+                        break;
+                    case R.id.nav_softversion:
+
+                        break;
+                    case R.id.nav_softdescribe:
+
+                        break;
+                    case R.id.nav_aboutus:
+
+                        break;
+                    default:
+                        //关闭导航栏
+                        //mDrawerLayout.closeDrawers();
+                        break;
+                }
+                return true;
+            }
+        });
+
+
 
         bt_buildConnect=(Button)findViewById(R.id.button_buildConnect);
         bt_buildConnect.setOnClickListener(new View.OnClickListener() {
@@ -436,30 +473,6 @@ public class MainActivity extends AppCompatActivity
         super.onBackPressed();
 
     }
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
 
     /**
      * 点击两次退出程序
@@ -480,6 +493,18 @@ public class MainActivity extends AppCompatActivity
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case android.R.id.home:
+                mDrawerLayout.openDrawer(GravityCompat.START);
+                break;
+            default:
+                break;
+        }
+        return true;
     }
 
     /**
