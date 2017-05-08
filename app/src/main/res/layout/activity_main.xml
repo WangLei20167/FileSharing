@@ -2,6 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
+
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
@@ -9,17 +10,33 @@
         android:layout_alignParentBottom="true"
         >
         <Button
+            android:text="创建连接"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/button_buildConnect"
+            style="@android:style/Widget.Button.Inset"/>
+
+        <Button
+            android:text="加入连接"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/button_joinConnect"
+            style="@android:style/Widget.Button.Inset"/>
+
+        <Button
             android:text="我要分享"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/button_shareFile"
             style="@android:style/Widget.Button.Inset"/>
 
+
+
         <Button
-            android:text="我要接收"
+            android:text="查看文件夹"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/button_receiveFile"
+            android:id="@+id/button_browseFolder"
             style="@android:style/Widget.Button.Inset"/>
     </LinearLayout>
 </RelativeLayout>

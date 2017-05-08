@@ -7,8 +7,14 @@ import android.widget.Toast;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+
+import Utils.FileUtils;
+import Utils.IntAndBytes;
+import msg.MsgValue;
 
 /**
  * Created by Administrator on 2017/4/28 0028.
@@ -20,8 +26,19 @@ public class TCPClient {
     private DataInputStream in = null;   //接收
     private DataOutputStream out = null; //发送
     private Context context;
-    public TCPClient(Context context){
+
+    private Handler handler = null;
+
+    //作为接收的缓存目录
+    private String TempPath;
+    private String FileRevPath;
+
+    public TCPClient(Context context,String TempPath,String FileRevPath,Handler handler){
         this.context=context;
+        this.TempPath=TempPath;
+        this.FileRevPath=FileRevPath;
+
+        this.handler=handler;
     }
 
     //连接SocketServer
@@ -56,22 +73,57 @@ public class TCPClient {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                byte[] getBytes=new byte[255];
+                byte[] getBytes=new byte[4069];
+                //待接收的文件长度和数目
+                int fileLen=0;
+                int fileNum=0;
+                int restFileNum=0;
+                int fileNameCount=1;
+                String tempFilePath="";
+                int readBytesNum=-1;
+                boolean isFirstMsg=true;
                 while (true) {
                     if (socket.isConnected()) {
                         if (!socket.isInputShutdown()) {
                             try {
-                                if(in.read(getBytes,0,255)> -1){
-                                    int length=getBytes[0];
-                                    byte[] b=new byte[length];
-                                    for(int i=0;i<length;++i){
-                                        b[i]=getBytes[i+1];
+                                if((readBytesNum=in.read(getBytes,0,255))> -1){
+                                    if (isFirstMsg) {
+                                        isFirstMsg=false;
+                                        byte[] lenBytes = new byte[4];
+                                        for (int i = 0; i < 4; i++) {
+                                            lenBytes[i] = getBytes[i];
+                                        }
+                                        fileLen = IntAndBytes.byte2int(lenBytes);
+                                        fileNum=getBytes[4];
+                                        restFileNum=fileNum;
+                                        tempFilePath=FileUtils.creatTimeFolder(TempPath);
                                     }
-                                    String s=new String(b);
-                                    Message getServerMsg = new Message();
-                                    getServerMsg.what = GETSERVERMSG;
-                                    getServerMsg.obj = s;
-                                    handler.sendMessage(getServerMsg);
+                                    //将socket中的内容写入文件
+                                    String fileName=fileNameCount+".nc";
+                                    fileNameCount++;
+                                    File file=FileUtils.creatFile(tempFilePath,fileName);
+                                    FileOutputStream fos = new FileOutputStream(file);
+                                    fos.write(getBytes,0,fileLen);
+//                                    int readBytes=0;   //已经读取的字节数
+//                                    while(readBytes<fileLen){
+//                                        fos.write(getBytes,0,readBytesNum);
+//                                        readBytes+=readBytesNum;   //记录已经写入的文件个数
+//                                        if(readBytes<fileLen){
+//                                            readBytesNum=in.read(getBytes,0,255);
+//                                        }
+//                                    }
+                                    fos.flush();
+                                    fos.close();
+                                    --restFileNum;
+                                    SendMessage(MsgValue.REVFINISH,fileNum,0,tempFilePath);
+                                    if(restFileNum==0){
+                                        //代表接收数据完毕
+                                        isFirstMsg=true;
+                                        fileNameCount=1;
+
+                                        SendMessage(MsgValue.REVFINISH,fileNum,0,tempFilePath);
+                                    }
+
                                 }
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -99,21 +151,9 @@ public class TCPClient {
     }
 
 
-    public static final int GETSERVERMSG=1;
-    public Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case GETSERVERMSG:
-                    Toast.makeText(context, msg.obj.toString(), Toast.LENGTH_SHORT).show();
-                    break;
-                default:
-                    break;
-            }
-            super.handleMessage(msg);
+    void SendMessage(int what, int arg1,int arg2,Object obj){
+        if (handler != null){
+            Message.obtain(handler, what,arg1, arg2,obj).sendToTarget();
         }
-    };
-
-
-
+    }
 }

@@ -34,10 +34,15 @@ public class TCPServer {
     private boolean serverSocketState = false;  //判断监听端口是否开启
     ServerThread serverThread = new ServerThread();
 
-    public TCPServer(Context context) {
+    //作为接收的缓存目录
+    private String TempPath;
+    private String FileRevPath;
+
+    public TCPServer(Context context,String TempPath,String FileRevPath) {
         //把活动对象传入
         this.context = context;
-
+        this.TempPath=TempPath;
+        this.FileRevPath=FileRevPath;
     }
 
     //开启socket服务
@@ -65,22 +70,23 @@ public class TCPServer {
         }
     }
 
-    public void SendFile(){
+    /**
+     * 向所用已连接节点发送数据
+     * @param sentData
+     * @param row 按行发送行数
+     */
+    public void SendFile(byte[][] sentData,int row){
+        //向所有已连接节点发送数据
         for (int p = 0; p < mList.size(); p++) {
             Socket s = mList.get(p);
             try {
                 DataOutputStream out = new DataOutputStream(s.getOutputStream());//发送
-                byte[] b="这是一个Server发给Client的测试文本".getBytes();
-                byte[] b1=new byte[b.length+1];
-                b1[0]=(byte)b.length;
-                for(int i=0;i<b.length;++i){
-                    b1[i+1]=b[i];
+                for(int i=0;i<row;++i){
+                    out.write(sentData[i]);
                 }
-                out.write(b1);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
 
@@ -263,4 +269,10 @@ public class TCPServer {
             super.handleMessage(msg);
         }
     };
+
+    void SendMessage(int what, Object obj){
+        if (handler != null){
+            Message.obtain(handler, what, obj).sendToTarget();
+        }
+    }
 }

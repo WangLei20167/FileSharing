@@ -88,6 +88,8 @@ JNIEXPORT jbyteArray JNICALL Java_com_example_administrator_filesharing_MainActi
     jsize  oldsize = row * col;
     //int nLen=row*col;
 
+
+
     unsigned char *pData= (unsigned char*)olddata;
 
     //存入需要编码的矩阵数据
@@ -97,7 +99,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_example_administrator_filesharing_MainActi
         int temp=0;
         for (int j=0; j<col; j++)
         {
-            //此处出错
+            //此处出错,数据量大时会出错？？？？
             matrix[i][j] = pData[i*col  + j];		// 复制数据到二维数组
             temp=matrix[i][j];
         }

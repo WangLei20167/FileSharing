@@ -64,7 +64,6 @@ public class FileUtils {
      * @param inputData 向文件中写入的内容
      */
     public static void writeToFile(String path,String fileName,byte[] inputData){
-        //把IP服务器的IP写入文件
         String toFile = path + fileName;
         File myFile = new File(toFile);
         FileOutputStream fos=null;
@@ -105,6 +104,22 @@ public class FileUtils {
                 }
             }
         }
+    }
+
+    public static File creatFile(String path,String fileName){
+        String toFile = path + fileName;
+        File myFile = new File(toFile);
+        FileOutputStream fos=null;
+        BufferedOutputStream bos=null;
+        if (!myFile.exists()) {   //不存在则创建
+            try {
+                myFile.createNewFile();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        return myFile;
     }
 
     /**

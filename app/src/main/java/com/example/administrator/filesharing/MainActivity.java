@@ -16,7 +16,9 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -29,6 +31,7 @@ import java.util.List;
 import Utils.AppFolder;
 import Utils.FileUtils;
 import Utils.IntAndBytes;
+import msg.MsgValue;
 import wifi.APHelper;
 import wifi.Constant;
 import wifi.TCPClient;
@@ -58,12 +61,15 @@ public class MainActivity extends AppCompatActivity {
     private List<String> permissionsList = new ArrayList<String>();
     //申请权限后的返回码
     private static final int REQUEST_CODE_ASK_PERMISSIONS = 1;
-    /**
+
      * 点两次返回按键退出程序的时间
      */
     private long mExitTime;
+    public Button bt_buildConnect;
+    public Button bt_joinConnect;
     public Button bt_shareFile;
-    public Button bt_receiveFile;
+    public Button bt_browseFolder;
+
     public APHelper mAPHelper = null;
     public TCPServer mTCPServer = null;
     public boolean OpenSocketServerPort = false;   //作为端口是否开启的标志
@@ -73,10 +79,14 @@ public class MainActivity extends AppCompatActivity {
     public String myTempPath = "";        //暂存目录
     public String myFileRevPath = "";     //已接收文件目录
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
 
         //检查和申请权限
         checkRequiredPermission(MainActivity.this);
@@ -86,10 +96,6 @@ public class MainActivity extends AppCompatActivity {
         if (mAPHelper.isApEnabled()) {
             mAPHelper.setWifiApEnabled(null, false);
         }
-        //用以处理SocketServer
-        mTCPServer = new TCPServer(MainActivity.this);
-        //用以连接Server Socket
-        mTcpClient = new TCPClient(MainActivity.this);
         //文件操作
         mAppFolder = new AppFolder();
         if (mAppFolder.createPath("hanhaiKuaiChuan")) {
@@ -97,13 +103,17 @@ public class MainActivity extends AppCompatActivity {
             myFolderPath = mAppFolder.FolderPath;
             myTempPath = mAppFolder.TempPath;
             myFileRevPath = mAppFolder.FileRevPath;
-        } else {
-            Toast.makeText(this, "文件夹创建失败", Toast.LENGTH_SHORT).show();
-        }
-        FileUtils.creatTimeFolder(myTempPath);
 
-        bt_shareFile = (Button) findViewById(R.id.button_shareFile);
-        bt_shareFile.setOnClickListener(new View.OnClickListener() {
+            //用以处理SocketServer
+            mTCPServer = new TCPServer(MainActivity.this,myTempPath,myFileRevPath);
+            //用以连接Server Socket
+            mTcpClient = new TCPClient(MainActivity.this,myTempPath,myFileRevPath,handler);
+        } else {
+            Toast.makeText(this, "文件夹创建失败,app无法正常使用", Toast.LENGTH_SHORT).show();
+        }
+
+        bt_buildConnect=(Button)findViewById(R.id.button_buildConnect);
+        bt_buildConnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //打开监听端口
@@ -119,13 +129,13 @@ public class MainActivity extends AppCompatActivity {
                             if (mAPHelper.setWifiApEnabled(APHelper.createWifiCfg(), true)) {
                                 //成功
                                 Message APOpenSuceess = new Message();
-                                APOpenSuceess.what = APOPENSUCCESS;
+                                APOpenSuceess.what = MsgValue.APOPENSUCCESS;
                                 handler.sendMessage(APOpenSuceess);
                                 //Toast.makeText(MainActivity.this, "热点开启", Toast.LENGTH_SHORT).show();
                             } else {
                                 //失败
                                 Message APOpenFailed = new Message();
-                                APOpenFailed.what = APOPENFAILED;
+                                APOpenFailed.what = MsgValue.APOPENFAILED;
                                 handler.sendMessage(APOpenFailed);
                                 // Toast.makeText(MainActivity.this, "打开热点失败", Toast.LENGTH_SHORT).show();
                             }
@@ -134,16 +144,10 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }).start();
-
-                //向所有连接的节点发送数据
-                //mTCPServer.SendFile();
-
-                //打开文件选择器，只是单选
-                showFileChooser();
             }
         });
-        bt_receiveFile = (Button) findViewById(R.id.button_receiveFile);
-        bt_receiveFile.setOnClickListener(new View.OnClickListener() {
+        bt_joinConnect=(Button)findViewById(R.id.button_joinConnect);
+        bt_joinConnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 // 如果热点已经打开，需要先关闭热点
@@ -153,17 +157,35 @@ public class MainActivity extends AppCompatActivity {
                     //GetIpAddress();
                     Toast.makeText(MainActivity.this, "热点关闭", Toast.LENGTH_SHORT).show();
                 }
-                //这里做接收文件处理
+                //连接WiFi
                 connectWifi();
 
-                //TCPClient mTcpClient=new TCPClient();
+                //连接socket
                 //此处应作一个判断，当连接上指定WiFi时，连接socketServer
                 connectServerSocket();
-                //mFileOperate.writeToFile("test1.txt","这是一个测试文本14");
-                //mFileOperate.openAssignFolder();
+            }
+        });
+
+
+        bt_shareFile = (Button) findViewById(R.id.button_shareFile);
+        bt_shareFile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //打开文件选择器，只是单选
+                showFileChooser();
+            }
+        });
+
+        bt_browseFolder = (Button) findViewById(R.id.button_browseFolder);
+        bt_browseFolder.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //这里做打开APP文件夹的操作
+                FileUtils.openAssignFolder(MainActivity.this, myFolderPath);
             }
         });
     }
+
 
     //连接热点
     public void connectWifi() {
@@ -217,6 +239,7 @@ public class MainActivity extends AppCompatActivity {
                     String fileName = FileUtils.getFileNameWithSuffix(path);
                     //String fileName=uri.getLastPathSegment();
                     randomNC_file(uri, 4, 4);
+
                 }
                 break;
         }
@@ -284,8 +307,9 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-
-        String originData = decodingData(dataForSend, K);
+        //向连接的节点发送数据
+        mTCPServer.SendFile(dataForSend,N);
+        //String originData = decodingData(dataForSend, K);
 
         return null;
     }
@@ -339,21 +363,22 @@ public class MainActivity extends AppCompatActivity {
         return a;
     }
 
-    public static final int APOPENSUCCESS = 1;
-    public static final int APOPENFAILED = 2;
-    public static final int PORTCANUSE = 3;
+
     public Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case APOPENSUCCESS:
+                case MsgValue.REVFINISH:
+                    //接收数据成功，开始解码操作
+                    int fileNum=msg.arg1;
+                    String tempDataPath=msg.obj.toString();
+                    Toast.makeText(MainActivity.this, "接收数据成功开始解码", Toast.LENGTH_SHORT).show();
+                    break;
+                case MsgValue.APOPENSUCCESS:
                     Toast.makeText(MainActivity.this, "热点开启", Toast.LENGTH_SHORT).show();
                     break;
-                case APOPENFAILED:
+                case MsgValue.APOPENFAILED:
                     Toast.makeText(MainActivity.this, "打开热点失败", Toast.LENGTH_SHORT).show();
-                    break;
-                case PORTCANUSE:
-                    bt_shareFile.setEnabled(true);
                     break;
                 default:
                     break;
