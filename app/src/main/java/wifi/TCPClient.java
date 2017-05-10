@@ -52,7 +52,8 @@ public class TCPClient {
             //连接失败
             return false;
         }
-        //连接成功
+        //连接成功，启动接收线程
+        receiveFile();
         return true;
     }
     //断开连接
@@ -115,7 +116,6 @@ public class TCPClient {
                                     fos.flush();
                                     fos.close();
                                     --restFileNum;
-                                    SendMessage(MsgValue.REVFINISH,fileNum,0,tempFilePath);
                                     if(restFileNum==0){
                                         //代表接收数据完毕
                                         isFirstMsg=true;

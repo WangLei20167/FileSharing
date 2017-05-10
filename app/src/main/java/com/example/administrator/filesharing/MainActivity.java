@@ -2,6 +2,7 @@ package com.example.administrator.filesharing;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -22,9 +23,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -37,6 +36,7 @@ import java.util.List;
 import Utils.AppFolder;
 import Utils.FileUtils;
 import Utils.IntAndBytes;
+import Utils.LocalInfor;
 import msg.MsgValue;
 import wifi.APHelper;
 import wifi.Constant;
@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     public Button bt_buildConnect;
     public Button bt_joinConnect;
     public Button bt_shareFile;
-    public Button bt_browseFolder;
+
 
     public APHelper mAPHelper = null;
     public TCPServer mTCPServer = null;
@@ -95,12 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         //检查和申请权限
         checkRequiredPermission(MainActivity.this);
-        //用以打开热点
-        mAPHelper = new APHelper(MainActivity.this);
-        //如果热点已经打开，需要先关闭热点
-        if (mAPHelper.isApEnabled()) {
-            mAPHelper.setWifiApEnabled(null, false);
-        }
+
         //文件操作
         mAppFolder = new AppFolder();
         if (mAppFolder.createPath("hanhaiKuaiChuan")) {
@@ -109,6 +104,11 @@ public class MainActivity extends AppCompatActivity {
             myTempPath = mAppFolder.TempPath;
             myFileRevPath = mAppFolder.FileRevPath;
 
+            //用以打开热点,如果ap已经打开则先关闭
+            mAPHelper = new APHelper(MainActivity.this);
+            if (mAPHelper.isApEnabled()) {
+                mAPHelper.setWifiApEnabled(null, false);
+            }
             //用以处理SocketServer
             mTCPServer = new TCPServer(MainActivity.this,myTempPath,myFileRevPath);
             //用以连接Server Socket
@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "文件夹创建失败,app无法正常使用", Toast.LENGTH_SHORT).show();
         }
+
 
         //用来实现左侧导航栏
         Toolbar toolbar=(Toolbar) findViewById(R.id.toolbar);
@@ -135,25 +136,40 @@ public class MainActivity extends AppCompatActivity {
                 switch (item.getItemId()){
                     case R.id.nav_openFolder:
                         //打开应用文件夹
-                        int i=0;
-                        i=i++;
                         FileUtils.openAssignFolder(MainActivity.this, myFolderPath);
                         break;
                     case R.id.nav_feedback:
+                        //用户反馈
+                        Toast.makeText(MainActivity.this, "功能未实现", Toast.LENGTH_SHORT).show();
 
                         break;
                     case R.id.nav_softversion:
-
+                        /**菜单中“版本”选项的弹出显示版本信息的对话框*/
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("软件版本")
+                                .setMessage("版本号：" + BuildConfig.VERSION_CODE + "\n版本名：" + BuildConfig.VERSION_NAME)
+                                .setPositiveButton("确定", null)
+                                .show();
                         break;
                     case R.id.nav_softdescribe:
-
+                        /**菜单中“软件描述”选项的弹出对话框*/
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("软件描述")
+                                .setMessage("这是一个利用网络编码安全方案的文件共享项目。\n网址：https://github.com/WangLei20167/FileSharing")
+                                .setPositiveButton("确定", null)
+                                .show();
                         break;
                     case R.id.nav_aboutus:
-
+                        //关于我们
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("关于我们")
+                                .setMessage("瀚海制作 \n邮箱：1092951104@qq.com")
+                                .setPositiveButton("确定", null)
+                                .show();
                         break;
                     default:
                         //关闭导航栏
-                        //mDrawerLayout.closeDrawers();
+                        mDrawerLayout.closeDrawers();
                         break;
                 }
                 return true;
@@ -167,10 +183,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 //打开监听端口
+                //mTCPServer.StartServer();
                 if (!OpenSocketServerPort) {
                     mTCPServer.StartServer();
                     OpenSocketServerPort = true;
                 }
+
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -200,9 +218,12 @@ public class MainActivity extends AppCompatActivity {
         bt_joinConnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 // 如果热点已经打开，需要先关闭热点
                 if (mAPHelper.isApEnabled()) {
                     mAPHelper.setWifiApEnabled(null, false);
+
+                    mTCPServer.CloseServer();
                     //当手机当做热点时，自身IP地址为192.168.43.1
                     //GetIpAddress();
                     Toast.makeText(MainActivity.this, "热点关闭", Toast.LENGTH_SHORT).show();
@@ -210,9 +231,7 @@ public class MainActivity extends AppCompatActivity {
                 //连接WiFi
                 connectWifi();
 
-                //连接socket
-                //此处应作一个判断，当连接上指定WiFi时，连接socketServer
-                connectServerSocket();
+
             }
         });
 
@@ -226,14 +245,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        bt_browseFolder = (Button) findViewById(R.id.button_browseFolder);
-        bt_browseFolder.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //这里做打开APP文件夹的操作
-                FileUtils.openAssignFolder(MainActivity.this, myFolderPath);
-            }
-        });
     }
 
 
@@ -246,6 +257,8 @@ public class MainActivity extends AppCompatActivity {
                 WifiAdmin mWifiAdmin = new WifiAdmin(MainActivity.this);
                 mWifiAdmin.openWifi();
                 mWifiAdmin.connectAppointedNet();
+                //连接socket
+                connectServerSocket();
             }
         }).start();
     }
@@ -257,8 +270,6 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 //连接Server Socket
                 mTcpClient.connectServer();
-                mTcpClient.receiveFile();
-                mTcpClient.sendFile();
             }
         }).start();
     }
@@ -266,7 +277,6 @@ public class MainActivity extends AppCompatActivity {
 
     //用于打开文件选择器，选择文件并返回文件地址
     public static final int FILE_SELECT_CODE = 1;
-
     private void showFileChooser() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
@@ -285,8 +295,8 @@ public class MainActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     // Get the Uri of the selected file
                     Uri uri = data.getData();
-                    String path = FileUtils.getPath(this, uri);
-                    String fileName = FileUtils.getFileNameWithSuffix(path);
+//                    String path = FileUtils.getPath(this, uri);
+//                    String fileName = FileUtils.getFileNameWithSuffix(path);
                     //String fileName=uri.getLastPathSegment();
                     randomNC_file(uri, 4, 4);
 

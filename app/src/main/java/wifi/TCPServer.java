@@ -114,6 +114,7 @@ public class TCPServer {
         public void run() {
             try {
                 server = new ServerSocket(Constant.TCP_ServerPORT);
+                server.setReuseAddress(true);
             } catch (IOException e1) {
                 // TODO Auto-generated catch block
                 //监听端口开启失败

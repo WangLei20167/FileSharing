@@ -4,6 +4,7 @@ import android.content.Context;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -36,25 +37,36 @@ public class LocalInfor {
         String imei = telephonyManager.getDeviceId();
         return imei;
     }
+
+
     /**
      * 获取本机ip方法
      */
-    private String getLocalIPAddress() {
+    public static String getHostIP() {
+        String hostIp = null;
         try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface
-                    .getNetworkInterfaces(); en.hasMoreElements(); ) {
-                NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf
-                        .getInetAddresses(); enumIpAddr.hasMoreElements(); ) {
-                    InetAddress inetAddress = enumIpAddr.nextElement();
-                    if (!inetAddress.isLoopbackAddress()) {
-                        return inetAddress.getHostAddress().toString();
+            Enumeration nis = NetworkInterface.getNetworkInterfaces();
+            InetAddress ia = null;
+            while (nis.hasMoreElements()) {
+                NetworkInterface ni = (NetworkInterface) nis.nextElement();
+                Enumeration<InetAddress> ias = ni.getInetAddresses();
+                while (ias.hasMoreElements()) {
+                    ia = ias.nextElement();
+                    if (ia instanceof Inet6Address) {
+                        continue;// skip ipv6
+                    }
+                    String ip = ia.getHostAddress();
+                    if (!"127.0.0.1".equals(ip)) {
+                        hostIp = ia.getHostAddress();
+                        break;
                     }
                 }
             }
-        } catch (SocketException ex) {
-            ex.printStackTrace();
+        } catch (SocketException e) {
+            Log.i("yao", "SocketException");
+            e.printStackTrace();
         }
-        return null;
+        return hostIp;
+
     }
 }

@@ -6,4 +6,12 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_settings">Settings</string>
+
+
+    <string name="str_has_selected">已选（0）</string>
+    <string name="str_name">名称</string>
+    <string name="str_0">0</string>
+    <string name="str_receive_file">收到的文件</string>
+    <string name="str_save_stream">节省流量</string>
+    <string name="str_connect_device_count">连接设备数</string>
 </resources>

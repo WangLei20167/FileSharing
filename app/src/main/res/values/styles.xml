@@ -17,11 +17,47 @@
     </style>
 
 
-
-
-
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
-    <!--<item name="android:windowFullscreen">true</item>-->
+
+    <style name="style_common_text">
+        <item name="android:text">@string/str_name</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/black</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+    <style name="style_home_bottom_image_view">
+        <item name="android:layout_width">@dimen/dp_32</item>
+        <item name="android:layout_height">@dimen/dp_32</item>
+        <item name="android:background">@drawable/ic_device_24dp</item>
+        <item name="android:layout_centerHorizontal">true</item>
+    </style>
+    <style name="style_home_text_view" parent="style_common_text">
+        <item name="android:layout_width">@dimen/dp_96</item>
+        <item name="android:layout_height">@dimen/dp_28</item>
+        <item name="android:text">@string/str_has_selected</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/selector_home_text_view</item>
+    </style>
+    <style name="style_home_bottom_text_view" parent="style_common_text">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+    <style name="style_home_bottom_text_view2" parent="style_common_text">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:text">@string/str_connect_device_count</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/darker_gray</item>
+        <item name="android:padding">4dp</item>
+    </style>
+
+
 </resources>

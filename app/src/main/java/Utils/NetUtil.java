@@ -1,9 +1,8 @@
 package Utils;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import android.app.Activity;
+import android.content.Context;
+import android.net.ConnectivityManager;
 
 /**
  * Created by Administrator on 2017/4/27 0027.
@@ -11,34 +10,24 @@ import java.net.UnknownHostException;
  */
 
 public class NetUtil {
-    /***
-     *  true:already in using  false:not using
-     * @param port
-     */
-    public static boolean isLoclePortUsing(int port){
-        boolean flag = true;
-        try {
-            flag = isPortUsing("127.0.0.1", port);
-        } catch (Exception e) {
-        }
-        return flag;
-    }
-    /***
-     *  true:already in using  false:not using
-     * @param host
-     * @param port
-     * @throws UnknownHostException
-     */
-    public static boolean isPortUsing(String host,int port) throws UnknownHostException {
-        boolean flag = false;
-        InetAddress theAddress = InetAddress.getByName(host);
-        try {
-            Socket socket = new Socket(theAddress,port);
-            socket.close();
-            flag = true;
-        } catch (IOException e) {
 
-        }
-        return flag;
+    private boolean wifiState;
+    private boolean mobileDataSatus;
+    private Context context;
+
+    /**
+     * 检查WiFi和移动数据是否可用
+     */
+    public void checkNet() {
+        ConnectivityManager con = (ConnectivityManager) context.getSystemService(Activity.CONNECTIVITY_SERVICE);
+        wifiState = con.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting();
+        mobileDataSatus = con.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).isConnectedOrConnecting();
+    }
+
+    /**
+     * 恢复网络
+     */
+    public void resetNet(){
+
     }
 }

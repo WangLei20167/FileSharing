@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
+
+
+        <Button
+            android:id="@+id/button_buildConnect"
+            style="@android:style/Widget.Button.Inset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="创建连接" />
+
+        <Button
+            android:id="@+id/button_joinConnect"
+            style="@android:style/Widget.Button.Inset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="加入连接" />
+
+        <Button
+            android:id="@+id/button_shareFile"
+            style="@android:style/Widget.Button.Inset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="我要分享" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="55dp"
+        android:scaleType="fitStart"
+        android:src="@mipmap/activity_main_banner" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="310dp"
+        android:background="@color/white"
+        android:orientation="horizontal"
+        android:padding="@dimen/activity_horizontal_margin">
+
+        <RelativeLayout
+            android:id="@+id/rl_device"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/selector_default_view"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_device"
+                style="@style/style_home_bottom_image_view" />
+
+            <TextView
+                android:id="@+id/tv_device_desc"
+                style="@style/style_home_bottom_text_view"
+                android:layout_below="@id/iv_device"
+                android:text="@string/str_0" />
+
+            <TextView
+                style="@style/style_home_bottom_text_view2"
+                android:layout_below="@id/tv_device_desc" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/rl_file"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/selector_default_view"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_file"
+                style="@style/style_home_bottom_image_view"
+                android:background="@drawable/ic_file_24dp" />
+
+            <TextView
+                android:id="@+id/tv_file_desc"
+                style="@style/style_home_bottom_text_view"
+                android:layout_below="@id/iv_file"
+                android:text="@string/str_0" />
+
+            <TextView
+                style="@style/style_home_bottom_text_view2"
+                android:layout_below="@id/tv_file_desc"
+                android:text="@string/str_receive_file" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/rl_storage"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/selector_default_view"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_storage"
+                style="@style/style_home_bottom_image_view"
+                android:background="@drawable/ic_storage_24dp" />
+
+            <TextView
+                android:id="@+id/tv_storage_desc"
+                style="@style/style_home_bottom_text_view"
+                android:layout_below="@id/iv_storage"
+                android:text="@string/str_0" />
+
+            <TextView
+                style="@style/style_home_bottom_text_view2"
+                android:layout_below="@id/tv_storage_desc"
+                android:text="@string/str_save_stream" />
+
+        </RelativeLayout>
+
+    </LinearLayout>
+</RelativeLayout>
